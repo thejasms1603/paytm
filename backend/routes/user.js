@@ -4,8 +4,9 @@ const z = require('zod');
 const jwt = require("jsonwebtoken");
 const {JWT_SECRET} = require("../config");
 const {User} = require("../db");
+const {Accounts} = require("../db")
 
-const authMiddleware = require('../middleware');
+const {authMiddleware} = require('../middleware');
 
 
 const signUpBody = z.object({
@@ -54,6 +55,12 @@ router.post('/signup', async(req,res)=>{
 
     const userId = user._id;
 
+    // Creating a new bank account
+    await Accounts.create({
+        userId,
+        balance : 1 + Math.random()*10000
+    })
+
     const token = jwt.sign({
         userId
     },JWT_SECRET);
@@ -94,7 +101,7 @@ router.post('/signin', async(req, res)=>{
 })
 
 
-router.put('/', authMiddleware , async (req,res)=>{
+router.put('/user',authMiddleware, async (req,res)=>{
     const{success} = updateBody.safeParse(req.body);
     if(!success)
     {
@@ -103,28 +110,32 @@ router.put('/', authMiddleware , async (req,res)=>{
         })
     }
 
-    await User.updateOne({_id:req.userId}, req.body);
-
-    res.status(200).json({
-        message:"Updated Successfully"
+   const updatedDoc  =  await User.updateOne({_id:req.userId}, req.body);
+   if(updatedDoc)
+   {
+       res.json({
+         message: "Updated Successfully",
+       });
+    }
+    else res.json({
+        message:"Error while updating information"
     })
 })
 
 router.get('/bulk', async(req,res)=>{
-    const filter = req.query.filter || ""
+
+    const escapeRegex = (string) => {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    };
+
+    const filter = req.query.filter ? escapeRegex(req.query.filter) : "";
 
     const users = await User.find({
-        $or: [{
-           firstName:{
-            "$regex":filter
-            },
-           },{
-            lastName:{
-                "$regex":filter
-            }
-        }]
+        $or: [
+            { firstName:{$regex:filter, $options:"i"}},
+            {lastName:{$regex:filter, $options:"i"}}
+        ]
     })
-
     res.json({
         user: users.map(user=>({
             username: user.username,
