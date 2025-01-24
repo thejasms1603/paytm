@@ -4,7 +4,7 @@ const z = require('zod');
 const jwt = require("jsonwebtoken");
 const {JWT_SECRET} = require("../config");
 const {User} = require("../db");
-const {Accounts} = require("../db")
+const {Account} = require("../db")
 
 const {authMiddleware} = require('../middleware');
 
@@ -56,7 +56,7 @@ router.post('/signup', async(req,res)=>{
     const userId = user._id;
 
     // Creating a new bank account
-    await Accounts.create({
+    await Account.create({
         userId,
         balance : 1 + Math.random()*10000
     })
@@ -122,7 +122,7 @@ router.put('/user',authMiddleware, async (req,res)=>{
     })
 })
 
-router.get('/bulk', async(req,res)=>{
+router.get('/bulk', authMiddleware, async(req,res)=>{
 
     const escapeRegex = (string) => {
       return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

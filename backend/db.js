@@ -38,7 +38,7 @@ const UserSchema = mongoose.Schema({
 
 
 const AccountSchema = mongoose.Schema({
-  posts:{
+  userId:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"User",
     required:true
